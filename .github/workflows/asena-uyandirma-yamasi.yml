@@ -1,0 +1,43 @@
+name: Asena Uyandirma Yamasi
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  yama:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Uyandirma esigini gevset
+        run: |
+          F=app/src/main/java/com/ai/assistance/operit/api/speech/PersonalWakeListener.kt
+          sed -i \
+            -e 's#val similarityThreshold: Float = [0-9.]*f#val similarityThreshold: Float = 0.80f#' \
+            -e 's#val minDynamicThresholdFloor: Float = [0-9.]*f#val minDynamicThresholdFloor: Float = 0.78f#' \
+            -e 's#val maxBestSecondGap: Float = [0-9.]*f#val maxBestSecondGap: Float = 0.10f#' \
+            -e 's#val minDurationRatio: Float = [0-9.]*f#val minDurationRatio: Float = 0.60f#' \
+            -e 's#val maxDurationRatio: Float = [0-9.]*f#val maxDurationRatio: Float = 1.60f#' \
+            $F
+          sed -n '/data class Config/,/^    )/p' $F
+
+      - name: Kaydet
+        run: |
+          git config user.name "Asena Bot"
+          git config user.email "asena-bot@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "Degisiklik yok, zaten uygulanmis."
+          else
+            git commit -m "Asena: uyandirma esigi gevsetildi"
+            git push
+          fi
+
+      - name: Asena derlemesini baslat
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run android-build.yml --ref main -f gradle_task=assembleDebug
