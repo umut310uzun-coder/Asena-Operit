@@ -1,0 +1,82 @@
+name: Asena Yama
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  yama:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: 1) Uygulama adi Asena
+        run: |
+          sed -i 's#<string name="app_name">[^<]*</string>#<string name="app_name">Asena</string>#' app/src/main/res/values*/strings.xml
+          sed -i 's#resValue("string", "app_name", "Operit Debug")#resValue("string", "app_name", "Asena")#' app/build.gradle.kts
+
+      - name: 2) SMS ve uygulama yukleme izinlerini sok
+        run: |
+          for P in SEND_SMS READ_SMS RECEIVE_SMS REQUEST_INSTALL_PACKAGES; do
+            sed -i "s#<uses-permission android:name=\"android.permission.$P\" />#<uses-permission android:name=\"android.permission.$P\" tools:node=\"remove\" />#" app/src/main/AndroidManifest.xml
+          done
+          grep -n 'tools:node="remove"' app/src/main/AndroidManifest.xml
+
+      - name: 3) Sabit imza anahtari (guncellemeler ustune kurulsun)
+        run: |
+          mkdir -p asena
+          if [ ! -f asena/asena.keystore ]; then
+            keytool -genkeypair -keystore asena/asena.keystore -alias asena \
+              -keyalg RSA -keysize 2048 -validity 10000 \
+              -storepass asena123 -keypass asena123 \
+              -dname "CN=Asena, O=Uzun Elektrik, C=TR"
+          fi
+          python3 - <<'PY'
+          p = "app/build.gradle.kts"
+          s = open(p, encoding="utf-8").read()
+          if "ASENA_SIGNING" not in s:
+              block = '''signingConfigs {
+                  // ASENA_SIGNING
+                  val asenaKeystore = rootProject.file("asena/asena.keystore")
+                  if (asenaKeystore.exists()) {
+                      getByName("debug") {
+                          storeFile = asenaKeystore
+                          storePassword = "asena123"
+                          keyAlias = "asena"
+                          keyPassword = "asena123"
+                      }
+                  }
+          '''
+              assert s.count("    signingConfigs {\n") == 1, "signingConfigs bulunamadi"
+              s = s.replace("    signingConfigs {\n", "    " + block, 1)
+              open(p, "w", encoding="utf-8").write(s)
+          print("imza ayari tamam")
+          PY
+
+      - name: 4) Degisiklikleri kaydet
+        run: |
+          git config user.name "Asena Bot"
+          git config user.email "asena-bot@users.noreply.github.com"
+          git add -A
+          git add -f asena/asena.keystore
+          if git diff --cached --quiet; then
+            echo "Degisiklik yok, zaten uygulanmis."
+          else
+            git commit -m "Asena yamasi: ad, izinler, imza"
+            git push
+          fi
+
+      - name: 5) Asena derlemesini baslat
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh workflow run android-build.yml --ref main -f gradle_task=assembleDebug
+          echo "Derleme baslatildi. Actions > Android Build sayfasina bak."
