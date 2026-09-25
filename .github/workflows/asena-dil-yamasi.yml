@@ -1,0 +1,47 @@
+name: Asena Dil Yamasi
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  yama:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Dinleme dilini Turkce yap
+        run: |
+          J=app/src/main/java/com/ai/assistance/operit
+          sed -i 's#languageCode = "zh-CN",#languageCode = "tr-TR",#' \
+            $J/ui/floating/voice/SpeechInteractionManager.kt \
+            $J/api/chat/AIForegroundService.kt
+          sed -i 's#var selectedLanguage by remember { mutableStateOf("zh-CN") }#var selectedLanguage by remember { mutableStateOf("tr-TR") }#' \
+            $J/ui/features/toolbox/screens/speechtotext/SpeechToTextScreen.kt
+          for F in $J/api/speech/OpenAISttProvider.kt $J/api/speech/DeepgramSttProvider.kt; do
+            grep -q 'code.startsWith("tr") -> "tr"' $F || \
+              sed -i 's#^\(\s*\)code.startsWith("en") -> "en"#&\n\1code.startsWith("tr") -> "tr"#' $F
+          done
+          echo "--- kontrol ---"
+          grep -rn 'languageCode = "tr-TR"' $J | wc -l
+          grep -n 'startsWith("tr")' $J/api/speech/*.kt
+
+      - name: Kaydet
+        run: |
+          git config user.name "Asena Bot"
+          git config user.email "asena-bot@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "Degisiklik yok, zaten uygulanmis."
+          else
+            git commit -m "Asena: dinleme dili Turkce"
+            git push
+          fi
+
+      - name: Asena derlemesini baslat
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run android-build.yml --ref main -f gradle_task=assembleDebug
