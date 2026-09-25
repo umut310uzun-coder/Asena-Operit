@@ -367,6 +367,16 @@ android {
     }
 
     signingConfigs {
+        // ASENA_SIGNING
+        val asenaKeystore = rootProject.file("asena/asena.keystore")
+        if (asenaKeystore.exists()) {
+            getByName("debug") {
+                storeFile = asenaKeystore
+                storePassword = "asena123"
+                keyAlias = "asena"
+                keyPassword = "asena123"
+            }
+        }
         val releaseKeystorePath = localProperties.getProperty("RELEASE_STORE_FILE")
         val releaseStorePassword = localProperties.getProperty("RELEASE_STORE_PASSWORD")
         val releaseKeyAlias = localProperties.getProperty("RELEASE_KEY_ALIAS")
@@ -435,7 +445,7 @@ android {
         debug {
             applicationIdSuffix = ".debug"
             signingConfig = signingConfigs.getByName("debug")
-            resValue("string", "app_name", "Operit Debug")
+            resValue("string", "app_name", "Asena")
         }
         create("clone") {
             initWith(getByName("debug"))
