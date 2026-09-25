@@ -1594,7 +1594,7 @@ class AIForegroundService : Service() {
             AppLogger.d(TAG, "唤醒识别器 initialize: ok=$initOk")
             wakeListeningMicActiveForRecordingDetection = true
             val startOk = provider.startRecognition(
-                languageCode = "zh-CN",
+                languageCode = "tr-TR",
                 continuousMode = true,
                 partialResults = true,
                 audioSource = MediaRecorder.AudioSource.MIC,

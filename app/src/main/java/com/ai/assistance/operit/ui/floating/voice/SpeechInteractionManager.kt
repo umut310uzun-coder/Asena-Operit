@@ -162,7 +162,7 @@ class SpeechInteractionManager(
                         delay(160)
                     }
                     ok = speechService.startRecognition(
-                        languageCode = "zh-CN",
+                        languageCode = "tr-TR",
                         continuousMode = true,
                         partialResults = true
                     )

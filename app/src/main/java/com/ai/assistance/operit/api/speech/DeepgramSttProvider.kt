@@ -537,6 +537,7 @@ class DeepgramSttProvider(
         return when {
             code.startsWith("zh") -> "zh"
             code.startsWith("en") -> "en"
+            code.startsWith("tr") -> "tr"
             else -> code
         }
     }
